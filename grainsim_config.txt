@@ -1,0 +1,39 @@
+# .vtk or .ph that contains the initial state.
+INITIAL_STATE_FILE = C:\Stuff\School\summer 2023\grainsim\Chen2\vor-mul-000-4860742877061148.ph
+# The folder to output VTK files to (make sure this ends with \\).
+OUTPUT_FOLDER = C:\Stuff\School\summer 2023\grainsim\Chen2\ben\\
+
+# The timesteps at which to capture VTKs (seperated by spaces).
+# Uncomment to use.
+# CHECKPOINTS = 0 1000000 2000000 3000000 4000000 
+
+# How often to capture a VTK file (in timesteps).
+PERIODIC_CHECKPOINT_INTERVAL = 10000000
+# The timestep at which to end the simulation.
+MAX_TIMESTEP = 100000000
+
+# The mobility for non-transformed boundaries.
+DEFAULT_MOBILITY = 0.01
+# The mobility for transformed boundaries.
+TRANSITIONED_MOBILITY = 0.04
+# How often to transition boundaries (in timesteps).
+TRANSITION_INTERVAL = 500000
+# How many boundaries to transition at a time.
+TRANSITION_COUNT = 50
+# What percent of transitions to propagate vs. random flip.
+PROPAGATION_CHANCE = 0.5
+
+# Whether or not to use the experimental "sweeping"/"potential energy" system. NOTE: Makes "PROPAGATION_CHANCE" do nothing.
+USE_POTENTIAL_ENERGY = true
+
+# How much to upscale the cube (e.g. a value of "2" on a 100x100x100 cube would create an equivalent 200x200x200 cube).
+SCALE_MULTIPLIER = 1
+
+# Whether or not to write boundary transitions to a log file.
+LOG_BOUNDARY_TRANSITIONS = true
+
+# A constant number representing the number of possible spin values within the system. Primarily for comparison to the Fortran code. Uncomment to use.
+# CONST_GRAIN_COUNT = 20000
+
+# What ratio of adjacent boundaries to (attempt) to transform for a candidate boundary upon propagation.
+PROPAGATION_RATIO = 0.1
