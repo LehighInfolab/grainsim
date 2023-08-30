@@ -1,3 +1,0 @@
-grainsim.out
-
-PAUSE
