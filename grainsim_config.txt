@@ -1,14 +1,14 @@
 # .vtk or .ph that contains the initial state.
-INITIAL_STATE_FILE = C:\Stuff\School\summer 2023\grainsim\Chen2\vor-mul-000-4860742877061148.ph
-# The folder to output VTK files to (make sure this ends with \\).
-OUTPUT_FOLDER = C:\Stuff\School\summer 2023\grainsim\Chen2\ben\\
+INITIAL_STATE_FILE = out/example.ph
+# The folder to output VTK files to (make sure this ends with / or \\).
+OUTPUT_FOLDER = out/
 
 # The timesteps at which to capture VTKs (seperated by spaces).
 # Uncomment to use.
 # CHECKPOINTS = 0 1000000 2000000 3000000 4000000 
 
 # How often to capture a VTK file (in timesteps).
-PERIODIC_CHECKPOINT_INTERVAL = 10000000
+PERIODIC_CHECKPOINT_INTERVAL = 1000000
 # The timestep at which to end the simulation.
 MAX_TIMESTEP = 100000000
 
