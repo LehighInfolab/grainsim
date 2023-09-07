@@ -1,16 +1,18 @@
 # .vtk or .ph that contains the initial state.
-INITIAL_STATE_FILE = out/example.ph
+INITIAL_STATE_FILE = out/Seed_0000_0000000.ph
 # The folder to output VTK files to (make sure this ends with / or \\).
 OUTPUT_FOLDER = out/
+# The prefix to use when creating VTK files.
+IDENTIFIER = test
 
 # The timesteps at which to capture VTKs (seperated by spaces).
 # Uncomment to use.
 # CHECKPOINTS = 0 1000000 2000000 3000000 4000000 
 
 # How often to capture a VTK file (in timesteps).
-PERIODIC_CHECKPOINT_INTERVAL = 1000000
+PERIODIC_CHECKPOINT_INTERVAL = 100000000
 # The timestep at which to end the simulation.
-MAX_TIMESTEP = 100000000
+MAX_TIMESTEP = 500000000
 
 # The mobility for non-transformed boundaries.
 DEFAULT_MOBILITY = 0.01
@@ -23,7 +25,7 @@ TRANSITION_COUNT = 50
 # What percent of transitions to propagate vs. random flip.
 PROPAGATION_CHANCE = 0.5
 
-# Whether or not to use the experimental "sweeping"/"potential energy" system. NOTE: Makes "PROPAGATION_CHANCE" do nothing.
+# Whether or not to use the experimental "sweeping"/"potential energy" system.
 USE_POTENTIAL_ENERGY = true
 
 # How much to upscale the cube (e.g. a value of "2" on a 100x100x100 cube would create an equivalent 200x200x200 cube).
@@ -32,8 +34,10 @@ SCALE_MULTIPLIER = 1
 # Whether or not to write boundary transitions to a log file.
 LOG_BOUNDARY_TRANSITIONS = true
 
-# A constant number representing the number of possible spin values within the system. Primarily for comparison to the Fortran code. Uncomment to use.
+# A constant number representing the number of possible spin values within the system. Primarily for comparison to the Fortran code.
+# Uncomment to use.
 # CONST_GRAIN_COUNT = 20000
 
 # What ratio of adjacent boundaries to (attempt) to transform for a candidate boundary upon propagation.
+# Note that the minimum "propagation count" is one, so the propagation ratio can never truly be zero.
 PROPAGATION_RATIO = 0.1

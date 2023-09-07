@@ -400,6 +400,8 @@ public:
 		std::set<size_t> flip_indices;
 		std::set<size_t> propagate_indices;
 
+		boundary_tracker.remove_marked_boundaries();
+
 		if (count > boundary_tracker.total_boundary_count - boundary_tracker.transformed_boundary_count)
 		{
 			count = boundary_tracker.total_boundary_count - boundary_tracker.transformed_boundary_count;
@@ -467,6 +469,13 @@ public:
 							bool found_junc = false;
 							for (auto junc_iter = boundary->junctions.begin(); junc_iter != boundary->junctions.end(); ++junc_iter)
 							{
+								if (junc_iter->first->a_spin >= grain_count ||
+									junc_iter->first->b_spin >= grain_count ||
+									junc_iter->first->a_spin == 0 ||
+									junc_iter->first->b_spin == 0) // !!!!! HACK #2 !!!!!
+								{
+									continue;
+								}
 								if (!junc_iter->first->transformed)
 								{
 									transition_boundary(junc_iter->first);
@@ -520,7 +529,7 @@ public:
 								// Still don't know if the junctions map is entirely accurate...
 								for (auto junc_iter = boundary->junctions.begin(); junc_iter != boundary->junctions.end(); ++junc_iter)
 								{
-									if (!junc_iter->first->transformed)
+									if (!junc_iter->first->transformed && junc_iter->first->area() > 0 /* !!! HACK #1 !!! */)
 									{
 										if (smallest_junc == nullptr || smallest_junc->area() > junc_iter->first->area()) smallest_junc = junc_iter->first;
 									}

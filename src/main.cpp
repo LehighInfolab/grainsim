@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
 		if (checkpoints.size() > 0 && curr_checkpoint < checkpoints.size() && timestep >= checkpoints[curr_checkpoint]) // The current timestep is an explicit checkpoint.
 		{
 			std::stringstream ss;
-			ss << cfg.output_folder << "output_" << std::setw(4) << std::setfill('0') << std::to_string(vtkcount) << '_' << std::to_string((size_t)timestep) << ".vtk";
+			ss << cfg.output_folder << cfg.identifier << "_" << std::setw(4) << std::setfill('0') << std::to_string(vtkcount + 1) << '_' << std::to_string((size_t)timestep) << ".vtk";
 			vtk::to_vtk(ss.str().c_str(), cube);
 			if (cfg.log_transitions) cube->flush_log_file();
 			++vtkcount;
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 		else if (cfg.checkpoint_interval > 0 && timestep >= next_checkpoint) // The current timestep surpasses the interval threshold.
 		{
 			std::stringstream ss;
-			ss << cfg.output_folder << "output_" << std::setw(4) << std::setfill('0') << std::to_string(vtkcount) << '_' << std::to_string((size_t)timestep) << ".vtk";
+			ss << cfg.output_folder << cfg.identifier << "_" << std::setw(4) << std::setfill('0') << std::to_string(vtkcount + 1) << '_' << std::to_string((size_t)timestep) << ".vtk";
 			vtk::to_vtk(ss.str().c_str(), cube);
 			if (cfg.log_transitions) cube->flush_log_file();
 			++vtkcount;

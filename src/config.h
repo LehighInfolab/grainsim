@@ -10,6 +10,7 @@
 struct config_t
 {
 	std::string initial_state_path;
+	std::string identifier;
 	std::string output_folder;
 	std::string checkpoints;
 	double checkpoint_interval = -1;
@@ -61,6 +62,10 @@ struct config_t
 			else if (key == "OUTPUT_FOLDER")
 			{
 				output_folder = value;
+			}
+			else if (key == "IDENTIFIER")
+			{
+				identifier = value;
 			}
 			else if (key == "CHECKPOINTS")
 			{

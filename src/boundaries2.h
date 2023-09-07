@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 #include <unordered_set>
+#include <list>
 
 #include "types.h"
 #include "config.h"
@@ -11,6 +12,8 @@ struct boundary_t
 {
 	spin_t a_spin, b_spin; // storing these is actually not necessary, but is used for logging
 
+	bool marked_for_deletion = false;
+
 	bool transformed = false;
 	std::unordered_set<size_t> boundary_voxel_indices;
 
@@ -18,7 +21,7 @@ struct boundary_t
 	int potential_energy = 0;
 
 	// Stores the adjacent boundaries and the number of junctions that they share.
-	std::unordered_map<boundary_t *, size_t> junctions;
+	std::unordered_map<boundary_t *, long> junctions;
 
 	// I may be wrong here but the junction map may cause a memory leak...
 	// Is it possible that a boundary may be deleted before its removal from the junction list? Not sure...
@@ -28,10 +31,10 @@ struct boundary_t
 	void delta_junction(boundary_t *b, char dArea)
 	{
 		junctions[b] += dArea;
-		if (junctions[b] == 0)
+		/*if (junctions[b] <= 0)
 		{
 			delete_junction(b);
-		}
+		}*/
 	}
 	void delete_junction(boundary_t *b)
 	{
@@ -68,6 +71,10 @@ struct boundary_tracker_t
 			output->b_spin = b;
 			boundary_map[a < b ? a : b][a < b ? b : a] = output;
 			++total_boundary_count;
+		}
+		else if (output->marked_for_deletion)
+		{
+			unmark_for_deletion(output);
 		}
 		return output;
 	}
@@ -122,6 +129,15 @@ struct boundary_tracker_t
 		delete boundary;
 	}
 
+	void mark_for_deletion(boundary_t *boundary)
+	{
+		boundary->marked_for_deletion = true;
+	}
+	void unmark_for_deletion(boundary_t *boundary)
+	{
+		boundary->marked_for_deletion = false;
+	}
+
 	// Check if the boundary between two grains is transformed.
 	bool is_transformed(spin_t a, spin_t b)
 	{
@@ -147,9 +163,10 @@ struct boundary_tracker_t
 	{
 		boundary_t *boundary = find_or_create_boundary(a, b);
 		boundary->boundary_voxel_indices.erase(index);
+
 		if (boundary->boundary_voxel_indices.size() == 0)
 		{
-			delete_boundary(a, b);
+			mark_for_deletion(boundary);
 		}
 		else if (voxel_neighbor_spins != nullptr)
 		{
@@ -157,7 +174,7 @@ struct boundary_tracker_t
 			{
 				if (voxel_neighbor_spins[i] != 0 && voxel_neighbor_spins[i] != a && voxel_neighbor_spins[i] != b)
 				{
-					boundary->delta_junction(find_or_create_boundary(a, voxel_neighbor_spins[i]), -1); // assume that spin "a" is the root voxel
+					boundary->delta_junction(find_or_create_boundary(a, voxel_neighbor_spins[i]), -1); // assume that spin "a" is the root grain
 				}
 			}
 		}
@@ -179,5 +196,43 @@ struct boundary_tracker_t
 
 		boundary->transformed = true;
 		++transformed_boundary_count;
+	}
+
+	void remove_marked_boundaries()
+	{
+		std::list<boundary_t *> delete_list;
+
+		for (auto sm_iter = boundary_map.begin(); sm_iter != boundary_map.end(); ++sm_iter)
+		{
+			for (auto lg_iter = sm_iter->second.begin(); lg_iter != sm_iter->second.end(); ++lg_iter)
+			{
+				boundary_t *boundary = lg_iter->second;
+				if (boundary->marked_for_deletion || boundary->boundary_voxel_indices.size() == 0)
+				{
+					delete_list.push_back(boundary);
+					continue;
+				}
+
+				std::list<boundary_t *> remove_from_junctions_list;
+				for (auto junc_iter = boundary->junctions.begin(); junc_iter != boundary->junctions.end(); ++junc_iter)
+				{
+					boundary_t *jbound = junc_iter->first;
+					if (jbound->marked_for_deletion || junc_iter->second <= 0)
+					{
+						remove_from_junctions_list.push_back(jbound);
+					}
+				}
+
+				for (auto rm_junc_iter = remove_from_junctions_list.begin(); rm_junc_iter != remove_from_junctions_list.end(); ++rm_junc_iter)
+				{
+					boundary->junctions.erase(*rm_junc_iter);
+				}
+			}
+		}
+
+		for (auto delete_iter = delete_list.begin(); delete_iter != delete_list.end(); ++delete_iter)
+		{
+			delete_boundary((*delete_iter)->a_spin, (*delete_iter)->b_spin);
+		}
 	}
 };
