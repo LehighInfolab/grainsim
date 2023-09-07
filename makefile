@@ -1,2 +1,2 @@
 grainsim:
-	g++ -O3 src/main.cpp -o grainsim.out -ggdb
+	g++ -O3 src/main.cpp -o grainsim.out
