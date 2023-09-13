@@ -11,6 +11,7 @@
 #include "octree3.h"
 #include "debug_timer.h"
 #include "config.h"
+#include "analysis.h"
 
 // cd C:\Stuff\School\summer 2023\grainsim
 // g++ -O3 CPPGrainSim/main.cpp -o grainsim.out -static
@@ -35,6 +36,8 @@ int main(int argc, char *argv[])
 	{
 		cube = vtk::from_file(cfg.initial_state_path.c_str(), false);
 	}
+
+	lattice_analyzer_t analyze;
 
 	cube->default_mobility = cfg.default_mobility;
 	cube->transitioned_mobility = cfg.transitioned_mobility;
@@ -93,6 +96,16 @@ int main(int argc, char *argv[])
 			ss << cfg.output_folder << cfg.identifier << "_" << std::setw(4) << std::setfill('0') << std::to_string(vtkcount + 1) << '_' << std::to_string((size_t)timestep) << ".vtk";
 			vtk::to_vtk(ss.str().c_str(), cube);
 			if (cfg.log_transitions) cube->flush_log_file();
+
+			if (cfg.generate_analysis_files)
+			{
+				std::cout << "Beginning analysis..." << std::endl;
+				analyze.load_lattice(cube);
+				ss.str(std::string());
+				ss << cfg.output_folder << cfg.identifier << "_" << std::setw(4) << std::setfill('0') << std::to_string(vtkcount + 1) << '_' << std::to_string((size_t)timestep) << "_analysis.txt";
+				analyze.save_analysis_to_file(ss.str().c_str());
+			}
+
 			++vtkcount;
 			++curr_checkpoint;
 
@@ -104,6 +117,16 @@ int main(int argc, char *argv[])
 			ss << cfg.output_folder << cfg.identifier << "_" << std::setw(4) << std::setfill('0') << std::to_string(vtkcount + 1) << '_' << std::to_string((size_t)timestep) << ".vtk";
 			vtk::to_vtk(ss.str().c_str(), cube);
 			if (cfg.log_transitions) cube->flush_log_file();
+
+			if (cfg.generate_analysis_files)
+			{
+				std::cout << "Beginning analysis..." << std::endl;
+				analyze.load_lattice(cube);
+				ss.str(std::string());
+				ss << cfg.output_folder << cfg.identifier << "_" << std::setw(4) << std::setfill('0') << std::to_string(vtkcount + 1) << '_' << std::to_string((size_t)timestep) << "_analysis.txt";
+				analyze.save_analysis_to_file(ss.str().c_str());
+			}
+
 			++vtkcount;
 
 			next_checkpoint += cfg.checkpoint_interval;

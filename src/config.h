@@ -24,6 +24,7 @@ struct config_t
 	int const_grain_count = 0;
 	bool log_transitions = false;
 	double propagation_ratio = 0;
+	bool generate_analysis_files = false;
 
 	void checkpoints_to_vector(std::vector<double> *checkpoint_vector)
 	{
@@ -118,6 +119,10 @@ struct config_t
 			else if (key == "PROPAGATION_RATIO")
 			{
 				propagation_ratio = std::stod(value);
+			}
+			else if (key == "GENERATE_ANALYSIS_FILES")
+			{
+				generate_analysis_files = value == "true";
 			}
 			else
 			{

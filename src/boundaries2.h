@@ -20,21 +20,12 @@ struct boundary_t
 	size_t previous_surface_area = 0;
 	int potential_energy = 0;
 
-	// Stores the adjacent boundaries and the number of junctions that they share.
+	// Stores the adjacent boundaries and the number of voxels that they share.
 	std::unordered_map<boundary_t *, long> junctions;
-
-	// I may be wrong here but the junction map may cause a memory leak...
-	// Is it possible that a boundary may be deleted before its removal from the junction list? Not sure...
-	// Even if this is the case, I can't imagine that it causes that much of a problem, as these boundaries are generally short-lived.
-	// However, on a huge cube with an abnormally long-lasting boundary I'm not so sure...
 
 	void delta_junction(boundary_t *b, char dArea)
 	{
 		junctions[b] += dArea;
-		/*if (junctions[b] <= 0)
-		{
-			delete_junction(b);
-		}*/
 	}
 	void delete_junction(boundary_t *b)
 	{
@@ -121,18 +112,15 @@ struct boundary_tracker_t
 			transfer_boundary->potential_energy += boundary->potential_energy;
 		}
 
-		/*for (auto junc_iter = boundary->junctions.begin(); junc_iter != boundary->junctions.end(); ++junc_iter)
-		{
-			junc_iter->first->delete_junction(boundary);
-		}*/
-
 		delete boundary;
 	}
 
+	// Mark a boundary for deletion.
 	void mark_for_deletion(boundary_t *boundary)
 	{
 		boundary->marked_for_deletion = true;
 	}
+	// Remove the mark for deletion from a boundary.
 	void unmark_for_deletion(boundary_t *boundary)
 	{
 		boundary->marked_for_deletion = false;
@@ -144,6 +132,7 @@ struct boundary_tracker_t
 		return find_or_create_boundary(a, b)->transformed;
 	}
 
+	// Add a voxel to a boundary and update that boundary's junctions.
 	void add_to_boundary(spin_t a, spin_t b, size_t index, spin_t *voxel_neighbor_spins = nullptr)
 	{
 		boundary_t *boundary = find_or_create_boundary(a, b);
@@ -159,6 +148,7 @@ struct boundary_tracker_t
 			}
 		}
 	}
+	// Remove a voxel from a boundary and update that boundary's junctions.
 	void remove_from_boundary(spin_t a, spin_t b, size_t index, spin_t *voxel_neighbor_spins = nullptr)
 	{
 		boundary_t *boundary = find_or_create_boundary(a, b);
@@ -198,6 +188,7 @@ struct boundary_tracker_t
 		++transformed_boundary_count;
 	}
 
+	// Delete all marked boundaries from the boundary map and remove all invalid junctions.
 	void remove_marked_boundaries()
 	{
 		std::list<boundary_t *> delete_list;
@@ -207,7 +198,7 @@ struct boundary_tracker_t
 			for (auto lg_iter = sm_iter->second.begin(); lg_iter != sm_iter->second.end(); ++lg_iter)
 			{
 				boundary_t *boundary = lg_iter->second;
-				if (boundary->marked_for_deletion || boundary->boundary_voxel_indices.size() == 0)
+				if (boundary->marked_for_deletion || boundary->area() == 0)
 				{
 					delete_list.push_back(boundary);
 					continue;

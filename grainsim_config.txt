@@ -10,7 +10,7 @@ IDENTIFIER = test
 # CHECKPOINTS = 0 1000000 2000000 3000000 4000000 
 
 # How often to capture a VTK file (in timesteps).
-PERIODIC_CHECKPOINT_INTERVAL = 100000000
+PERIODIC_CHECKPOINT_INTERVAL = 1000000
 # The timestep at which to end the simulation.
 MAX_TIMESTEP = 500000000
 
@@ -41,3 +41,6 @@ LOG_BOUNDARY_TRANSITIONS = true
 # What ratio of adjacent boundaries to (attempt) to transform for a candidate boundary upon propagation.
 # Note that the minimum "propagation count" is one, so the propagation ratio can never truly be zero.
 PROPAGATION_RATIO = 0.1
+
+# Whether or not to generate analysis files for each output VTK. Contains volume for each grain as well as curvature/area of each boundary.
+GENERATE_ANALYSIS_FILES = true

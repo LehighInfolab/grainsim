@@ -42,9 +42,6 @@ private:
 	// Temperature that the simulation should run at.
 	const activ_t kT = 0.5;
 
-	// An object that tracks and controls grain boundary transformations.
-	boundary_tracker_t boundary_tracker;
-
 	// Build the neighbor offset and e-term lookup tables.
 	void build_lookup_tables()
 	{
@@ -209,6 +206,9 @@ public:
 	// Total number of possible grains in the simulation.
 	// In Holm's code this is a constant value, here we set it to the number of grains within the initial state.
 	spin_t grain_count;
+
+	// An object that tracks and controls grain boundary transformations.
+	boundary_tracker_t boundary_tracker;
 
 	// Get the overall activity within the lattice.
 	activ_t system_activity()
@@ -441,7 +441,7 @@ public:
 			propagate_indices.insert(index);
 		}
 
-		size_t debug_prop_amt = 0, debug_flip_amt = 0, debug_poten_amt = 0;
+		size_t num_random_propagated = 0, num_random_flipped = 0, num_poteng_propagated = 0;
 
 		bool end_loop = false;
 		std::set<size_t>::iterator flip_iter = flip_indices.begin(), propagate_iter = propagate_indices.begin();
@@ -469,22 +469,15 @@ public:
 							bool found_junc = false;
 							for (auto junc_iter = boundary->junctions.begin(); junc_iter != boundary->junctions.end(); ++junc_iter)
 							{
-								if (junc_iter->first->a_spin >= grain_count ||
-									junc_iter->first->b_spin >= grain_count ||
-									junc_iter->first->a_spin == 0 ||
-									junc_iter->first->b_spin == 0) // !!!!! HACK #2 !!!!!
-								{
-									continue;
-								}
 								if (!junc_iter->first->transformed)
 								{
 									transition_boundary(junc_iter->first);
 
 									found_junc = true;
-									++debug_prop_amt;
+									++num_random_propagated;
 
 									// This is a hack to early-stop propagation. It should be cleaner but I am very tired...
-									if (debug_prop_amt >= propagate_count)
+									if (num_random_propagated >= propagate_count)
 									{
 										propagate_iter = propagate_indices.end();
 										--propagate_iter;
@@ -526,10 +519,9 @@ public:
 								potential_propagation = false;
 								boundary_t *smallest_junc = nullptr;
 
-								// Still don't know if the junctions map is entirely accurate...
 								for (auto junc_iter = boundary->junctions.begin(); junc_iter != boundary->junctions.end(); ++junc_iter)
 								{
-									if (!junc_iter->first->transformed && junc_iter->first->area() > 0 /* !!! HACK #1 !!! */)
+									if (!junc_iter->first->transformed)
 									{
 										if (smallest_junc == nullptr || smallest_junc->area() > junc_iter->first->area()) smallest_junc = junc_iter->first;
 									}
@@ -540,7 +532,7 @@ public:
 									transition_boundary(smallest_junc);
 									boundary->potential_energy -= smallest_junc->area();
 									potential_propagation = true;
-									++debug_poten_amt;
+									++num_poteng_propagated;
 								}
 							}
 						}
@@ -554,7 +546,7 @@ public:
 					{
 						transition_boundary(boundary);
 
-						++debug_flip_amt;
+						++num_random_flipped;
 						++flip_iter;
 					}
 					++untrans_count;
@@ -570,6 +562,6 @@ public:
 		}
 
 		std::cout << "Transitioned boundaries: " << boundary_tracker.transformed_boundary_count << " / " << boundary_tracker.total_boundary_count << " boundaries..." << std::endl;
-		std::cout << "# Transitioned via propagation: " << debug_prop_amt << ", via random flipping: " << debug_flip_amt << ", via potential energy: " << debug_poten_amt << "..." << std::endl;
+		std::cout << "# Transitioned via propagation: " << num_random_propagated << ", via random flipping: " << num_random_flipped << ", via potential energy: " << num_poteng_propagated << "..." << std::endl;
 	}
 };
