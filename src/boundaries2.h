@@ -154,7 +154,7 @@ struct boundary_tracker_t
 		boundary_t *boundary = find_or_create_boundary(a, b);
 		boundary->boundary_voxel_indices.erase(index);
 
-		if (boundary->boundary_voxel_indices.size() == 0)
+		if (boundary->area() == 0)
 		{
 			mark_for_deletion(boundary);
 		}

@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
 
 #include "types.h"
 #include "lattice.h"
@@ -25,12 +26,44 @@ private:
 		return max_so_far;
 	}
 
-	void memfill(int *arr, size_t size, int val)
+#pragma pack(push, 1)
+	struct boundary_info_t
 	{
-		for (size_t i = 0; i < size; ++i)
+		int sm_to_lg_outies = 0,
+			sm_to_lg_delta = 0,
+			lg_to_sm_outies = 0,
+			lg_to_sm_delta = 0,
+			surface_area = 0;
+	};
+#pragma pack(pop)
+	std::unordered_map<spin_t, std::unordered_map<spin_t, boundary_info_t>> sparse_info_matrix;
+	std::unordered_map<spin_t, size_t> vol_map;
+
+	void incr_sparse_outies(spin_t a, spin_t b, char amt)
+	{
+		if (a > b)
 		{
-			arr[i] = val;
+			++sparse_info_matrix[a][b].lg_to_sm_outies;
 		}
+		else if (a < b)
+		{
+			++sparse_info_matrix[a][b].sm_to_lg_outies;
+		}
+	}
+	void incr_sparse_delta(spin_t a, spin_t b, char amt)
+	{
+		if (a > b)
+		{
+			++sparse_info_matrix[a][b].lg_to_sm_delta;
+		}
+		else if (a < b)
+		{
+			++sparse_info_matrix[a][b].sm_to_lg_delta;
+		}
+	}
+	void incr_sparse_sa(spin_t a, spin_t b, char amt)
+	{
+		++sparse_info_matrix[a > b ? b : a][a > b ? a : b].surface_area;
 	}
 
 	void check_edge(
@@ -49,44 +82,53 @@ private:
 
 		if (id1 != id2 && id2 == id3 && id2 == id4)
 		{
-			++outie_matrix[id1 * matrix_dim + id2];
+			incr_sparse_outies(id1, id2, 1);
 		}
 		else if (id2 != id1 && id1 == id3 && id1 == id4)
 		{
-			++outie_matrix[id2 * matrix_dim + id1];
+			incr_sparse_outies(id2, id1, 1);
 		}
 		else if (id3 != id1 && id1 == id2 && id1 == id4)
 		{
-			++outie_matrix[id3 * matrix_dim + id1];
+			incr_sparse_outies(id3, id1, 1);
 		}
 		else if (id4 != id1 && id1 == id2 && id1 == id3)
 		{
-			++outie_matrix[id4 * matrix_dim + id1];
+			incr_sparse_outies(id4, id1, 1);
 		}
 	}
 
-	int *outie_matrix = nullptr, *vol_vector = nullptr;
+	spin_t *prev_spins = nullptr;
+	bool first_run = false;
 	size_t matrix_dim = 0;
-	void generate_matrices(bool realloc=true)
+	void generate_matrices()
 	{
-		if (realloc)
-		{
-			if (outie_matrix != nullptr && vol_vector != nullptr)
-			{
-				delete outie_matrix;
-				delete vol_vector;
-			}
-			outie_matrix = new int[matrix_dim * matrix_dim];
-			vol_vector = new int[matrix_dim];
-		}
-
-		memfill(outie_matrix, matrix_dim * matrix_dim, 0);
-		memfill(vol_vector, matrix_dim, 0);
+		sparse_info_matrix.clear();
+		vol_map.clear();
 
 		for(coord_t z = 0; z < curr_cube->side_length; ++z)
 			for (coord_t y = 0; y < curr_cube->side_length; ++y)
 				for (coord_t x = 0; x < curr_cube->side_length; ++x)
 				{
+					spin_t
+						curr_id = curr_cube->voxel_at(x, y, z)->spin,
+						fwd_id = curr_cube->voxel_at(x, y, z + 1)->spin,
+						right_id = curr_cube->voxel_at(x + 1, y, z)->spin,
+						up_id = curr_cube->voxel_at(x, y + 1, z)->spin;
+
+					if (curr_id != right_id)
+					{
+						incr_sparse_sa(curr_id, right_id, 1);
+					}
+					if (curr_id != fwd_id)
+					{
+						incr_sparse_sa(curr_id, fwd_id, 1);
+					}
+					if (curr_id != up_id)
+					{
+						incr_sparse_sa(curr_id, up_id, 1);
+					}
+
 					// back bottom
 					check_edge(
 						x, y, z,
@@ -109,8 +151,18 @@ private:
 						0, 0, 0,
 						-1, 0, 0);
 
-					++vol_vector[curr_cube->voxel_at(x, y, z)->spin];
+					++vol_map[curr_id];
+
+					if (!first_run)
+					{
+						spin_t prev_id = prev_spins[x + (y * curr_cube->side_length) + (z * curr_cube->side_length * curr_cube->side_length)];
+						if (prev_id != curr_id)
+							incr_sparse_delta(prev_id, curr_id, 1);
+					}
+					prev_spins[x + (y * curr_cube->side_length) + (z * curr_cube->side_length * curr_cube->side_length)] = curr_id;
 				}
+
+		first_run = false;
 	}
 
 public:
@@ -119,16 +171,28 @@ public:
 	{
 		curr_cube = cube;
 		max_grains = calculate_max_grains();
-
-		bool realloc = matrix_dim != max_grains + 1;
 		matrix_dim = max_grains + 1;
 
-		generate_matrices(realloc);
+		if (prev_spins == nullptr)
+		{
+			first_run = true;
+			prev_spins = new spin_t[curr_cube->side_length * curr_cube->side_length * curr_cube->side_length];
+		}
+
+		generate_matrices();
 	}
 
-	double get_curvature(spin_t a, spin_t b) // DOES NOT CHECK IF BOUNDARY EXISTS!!!!!
+	double get_curvature(spin_t a, spin_t b) // DOES NOT VERIFY THAT BOUNDARY EXISTS!!!!!
 	{
-		return (3.141592653589793 / 4.0) * (outie_matrix[a * matrix_dim + b] - outie_matrix[b * matrix_dim + a]);
+		if (a > b)
+		{
+			return (3.141592653589793 / 4.0) * (sparse_info_matrix[b][a].lg_to_sm_outies - sparse_info_matrix[b][a].sm_to_lg_outies);
+		}
+		else if (a < b)
+		{
+			return (3.141592653589793 / 4.0) * (sparse_info_matrix[a][b].sm_to_lg_outies - sparse_info_matrix[a][b].lg_to_sm_outies);
+		}
+		return 0;
 	}
 
 	void save_analysis_to_file(const char *fname)
@@ -139,39 +203,47 @@ public:
 
 		// Volumes
 		afile << "VOLUMES\n";
-		for (size_t i = 0; i < matrix_dim; ++i)
+		for (auto vol_iter = vol_map.begin(); vol_iter != vol_map.end(); ++vol_iter)
 		{
-			if (vol_vector[i] == 0) continue;
-			afile << i << ' ' << vol_vector[i] << '\n';
+			afile << vol_iter->first << ' ' << vol_iter->second << '\n';
 		}
 
 		// Curvatures
 		afile << "CURVATURES\n";
-		for (auto sm_iter = curr_cube->boundary_tracker.boundary_map.begin(); sm_iter != curr_cube->boundary_tracker.boundary_map.end(); ++sm_iter)
+		for (auto sm_iter = sparse_info_matrix.begin(); sm_iter != sparse_info_matrix.end(); ++sm_iter)
 		{
 			for (auto lg_iter = sm_iter->second.begin(); lg_iter != sm_iter->second.end(); ++lg_iter)
 			{
-				boundary_t *boundary = lg_iter->second;
+				if (lg_iter->second.lg_to_sm_outies == 0 && lg_iter->second.sm_to_lg_outies == 0) continue;
 
-				if (boundary->area() == 0) continue;
-
-				afile << boundary->a_spin << ' ' << boundary->b_spin << ' ' << get_curvature(boundary->a_spin, boundary->b_spin) << '\n';
-				afile << boundary->b_spin << ' ' << boundary->a_spin << ' ' << get_curvature(boundary->b_spin, boundary->a_spin) << '\n';
+				afile << sm_iter->first << ' ' << lg_iter->first << ' ' << get_curvature(sm_iter->first, lg_iter->first) << '\n';
+				afile << lg_iter->first << ' ' << sm_iter->first << ' ' << get_curvature(lg_iter->first, sm_iter->first) << '\n';
 			}
 		}
 
 		// Curvatures
 		afile << "SURFACE_AREAS\n";
-		for (auto sm_iter = curr_cube->boundary_tracker.boundary_map.begin(); sm_iter != curr_cube->boundary_tracker.boundary_map.end(); ++sm_iter)
+		for (auto sm_iter = sparse_info_matrix.begin(); sm_iter != sparse_info_matrix.end(); ++sm_iter)
 		{
 			for (auto lg_iter = sm_iter->second.begin(); lg_iter != sm_iter->second.end(); ++lg_iter)
 			{
-				boundary_t *boundary = lg_iter->second;
+				if (lg_iter->second.surface_area == 0) continue;
 
-				if (boundary->area() == 0) continue;
+				afile << sm_iter->first << ' ' << lg_iter->first << ' ' << lg_iter->second.surface_area << '\n';
+				afile << lg_iter->first << ' ' << sm_iter->first << ' ' << lg_iter->second.surface_area << '\n';
+			}
+		}
 
-				afile << boundary->a_spin << ' ' << boundary->b_spin << ' ' << boundary->area() << '\n';
-				afile << boundary->b_spin << ' ' << boundary->a_spin << ' ' << boundary->area() << '\n';
+		// Deltas
+		afile << "DELTAS\n";
+		for (auto sm_iter = sparse_info_matrix.begin(); sm_iter != sparse_info_matrix.end(); ++sm_iter)
+		{
+			for (auto lg_iter = sm_iter->second.begin(); lg_iter != sm_iter->second.end(); ++lg_iter)
+			{
+				if (lg_iter->second.lg_to_sm_delta == 0 && lg_iter->second.sm_to_lg_delta == 0) continue;
+
+				afile << sm_iter->first << ' ' << lg_iter->first << ' ' << lg_iter->second.sm_to_lg_delta << '\n';
+				afile << lg_iter->first << ' ' << sm_iter->first << ' ' << lg_iter->second.lg_to_sm_delta << '\n';
 			}
 		}
 
