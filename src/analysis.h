@@ -214,7 +214,7 @@ public:
 		{
 			for (auto lg_iter = sm_iter->second.begin(); lg_iter != sm_iter->second.end(); ++lg_iter)
 			{
-				if (lg_iter->second.lg_to_sm_outies == 0 && lg_iter->second.sm_to_lg_outies == 0) continue;
+				if (lg_iter->second.surface_area == 0) continue;
 
 				afile << sm_iter->first << ' ' << lg_iter->first << ' ' << get_curvature(sm_iter->first, lg_iter->first) << '\n';
 				afile << lg_iter->first << ' ' << sm_iter->first << ' ' << get_curvature(lg_iter->first, sm_iter->first) << '\n';
