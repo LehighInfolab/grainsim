@@ -234,16 +234,16 @@ public:
 			}
 		}
 
-		// Deltas
-		afile << "DELTAS\n";
+		// Velocities
+		afile << "VELOCITIES\n";
 		for (auto sm_iter = sparse_info_matrix.begin(); sm_iter != sparse_info_matrix.end(); ++sm_iter)
 		{
 			for (auto lg_iter = sm_iter->second.begin(); lg_iter != sm_iter->second.end(); ++lg_iter)
 			{
 				if (lg_iter->second.lg_to_sm_delta == 0 && lg_iter->second.sm_to_lg_delta == 0) continue;
 
-				afile << sm_iter->first << ' ' << lg_iter->first << ' ' << lg_iter->second.sm_to_lg_delta << '\n';
-				afile << lg_iter->first << ' ' << sm_iter->first << ' ' << lg_iter->second.lg_to_sm_delta << '\n';
+				afile << sm_iter->first << ' ' << lg_iter->first << ' ' << (lg_iter->second.sm_to_lg_delta - lg_iter->second.lg_to_sm_delta) << '\n';
+				afile << lg_iter->first << ' ' << sm_iter->first << ' ' << (lg_iter->second.lg_to_sm_delta - lg_iter->second.sm_to_lg_delta) << '\n';
 			}
 		}
 
