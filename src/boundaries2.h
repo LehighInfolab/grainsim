@@ -48,7 +48,7 @@ struct boundary_tracker_t
 	// between grains 5 and 10, we would do it via "boundary_map.at(5).at(10)" ). This ordering prevents
 	// redundancies.
 
-	std::unordered_map<spin_t, std::unordered_map<spin_t, boundary_t *>> boundary_map;
+	std::unordered_map<spin_t, std::unordered_map<spin_t, boundary_t *> > boundary_map;
 	size_t transformed_boundary_count = 0, total_boundary_count = 0;
 
 	// Find the boundary between two grains, or create it if it does not yet exist.

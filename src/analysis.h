@@ -36,32 +36,32 @@ private:
 			surface_area = 0;
 	};
 #pragma pack(pop)
-	std::unordered_map<spin_t, std::unordered_map<spin_t, boundary_info_t>> sparse_info_matrix;
+	std::unordered_map<spin_t, std::unordered_map<spin_t, boundary_info_t> > sparse_info_matrix;
 	std::unordered_map<spin_t, size_t> vol_map;
 
-	void incr_sparse_outies(spin_t a, spin_t b, char amt)
+	void incr_sparse_outies(spin_t a, spin_t b)
 	{
 		if (a > b)
 		{
-			++sparse_info_matrix[a][b].lg_to_sm_outies;
+			++sparse_info_matrix[b][a].lg_to_sm_outies;
 		}
 		else if (a < b)
 		{
 			++sparse_info_matrix[a][b].sm_to_lg_outies;
 		}
 	}
-	void incr_sparse_delta(spin_t a, spin_t b, char amt)
+	void incr_sparse_delta(spin_t a, spin_t b)
 	{
 		if (a > b)
 		{
-			++sparse_info_matrix[a][b].lg_to_sm_delta;
+			++sparse_info_matrix[b][a].lg_to_sm_delta;
 		}
 		else if (a < b)
 		{
 			++sparse_info_matrix[a][b].sm_to_lg_delta;
 		}
 	}
-	void incr_sparse_sa(spin_t a, spin_t b, char amt)
+	void incr_sparse_sa(spin_t a, spin_t b)
 	{
 		++sparse_info_matrix[a > b ? b : a][a > b ? a : b].surface_area;
 	}
@@ -82,19 +82,19 @@ private:
 
 		if (id1 != id2 && id2 == id3 && id2 == id4)
 		{
-			incr_sparse_outies(id1, id2, 1);
+			incr_sparse_outies(id1, id2);
 		}
 		else if (id2 != id1 && id1 == id3 && id1 == id4)
 		{
-			incr_sparse_outies(id2, id1, 1);
+			incr_sparse_outies(id2, id1);
 		}
 		else if (id3 != id1 && id1 == id2 && id1 == id4)
 		{
-			incr_sparse_outies(id3, id1, 1);
+			incr_sparse_outies(id3, id1);
 		}
 		else if (id4 != id1 && id1 == id2 && id1 == id3)
 		{
-			incr_sparse_outies(id4, id1, 1);
+			incr_sparse_outies(id4, id1);
 		}
 	}
 
@@ -118,15 +118,15 @@ private:
 
 					if (curr_id != right_id)
 					{
-						incr_sparse_sa(curr_id, right_id, 1);
+						incr_sparse_sa(curr_id, right_id);
 					}
 					if (curr_id != fwd_id)
 					{
-						incr_sparse_sa(curr_id, fwd_id, 1);
+						incr_sparse_sa(curr_id, fwd_id);
 					}
 					if (curr_id != up_id)
 					{
-						incr_sparse_sa(curr_id, up_id, 1);
+						incr_sparse_sa(curr_id, up_id);
 					}
 
 					// back bottom
@@ -157,7 +157,7 @@ private:
 					{
 						spin_t prev_id = prev_spins[x + (y * curr_cube->side_length) + (z * curr_cube->side_length * curr_cube->side_length)];
 						if (prev_id != curr_id)
-							incr_sparse_delta(prev_id, curr_id, 1);
+							incr_sparse_delta(prev_id, curr_id);
 					}
 					prev_spins[x + (y * curr_cube->side_length) + (z * curr_cube->side_length * curr_cube->side_length)] = curr_id;
 				}
