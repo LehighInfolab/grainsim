@@ -98,8 +98,6 @@ private:
 		}
 	}
 
-	spin_t *prev_spins = nullptr;
-	bool first_run = false;
 	size_t matrix_dim = 0;
 	void generate_matrices()
 	{
@@ -152,17 +150,8 @@ private:
 						-1, 0, 0);
 
 					++vol_map[curr_id];
-
-					if (!first_run)
-					{
-						spin_t prev_id = prev_spins[x + (y * curr_cube->side_length) + (z * curr_cube->side_length * curr_cube->side_length)];
-						if (prev_id != curr_id)
-							incr_sparse_delta(prev_id, curr_id);
-					}
-					prev_spins[x + (y * curr_cube->side_length) + (z * curr_cube->side_length * curr_cube->side_length)] = curr_id;
 				}
 
-		first_run = false;
 	}
 
 public:
@@ -172,12 +161,6 @@ public:
 		curr_cube = cube;
 		max_grains = calculate_max_grains();
 		matrix_dim = max_grains + 1;
-
-		if (prev_spins == nullptr)
-		{
-			first_run = true;
-			prev_spins = new spin_t[curr_cube->side_length * curr_cube->side_length * curr_cube->side_length];
-		}
 
 		generate_matrices();
 	}
@@ -236,14 +219,19 @@ public:
 
 		// Velocities
 		afile << "VELOCITIES\n";
-		for (auto sm_iter = sparse_info_matrix.begin(); sm_iter != sparse_info_matrix.end(); ++sm_iter)
+		for (auto sm_iter = curr_cube->boundary_tracker.boundary_map.begin(); sm_iter != curr_cube->boundary_tracker.boundary_map.end(); ++sm_iter)
 		{
 			for (auto lg_iter = sm_iter->second.begin(); lg_iter != sm_iter->second.end(); ++lg_iter)
 			{
-				if (lg_iter->second.lg_to_sm_delta == 0 && lg_iter->second.sm_to_lg_delta == 0) continue;
+				boundary_t *boundary = lg_iter->second;
 
-				afile << sm_iter->first << ' ' << lg_iter->first << ' ' << (lg_iter->second.sm_to_lg_delta - lg_iter->second.lg_to_sm_delta) << '\n';
-				afile << lg_iter->first << ' ' << sm_iter->first << ' ' << (lg_iter->second.lg_to_sm_delta - lg_iter->second.sm_to_lg_delta) << '\n';
+				if (boundary->area() == 0) continue;
+				
+				afile << boundary->a_spin << ' ' << boundary->b_spin << ' ' << (boundary->a_flips - boundary->b_flips) << '\n';
+				afile << boundary->b_spin << ' ' << boundary->a_spin << ' ' << (boundary->b_flips - boundary->a_flips) << '\n';
+
+				boundary->b_flips = 0;
+				boundary->b_flips = 0;
 			}
 		}
 

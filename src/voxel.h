@@ -67,7 +67,7 @@ public:
 			neighbor_spins[nindex] = nspin;
 			neighbor_probs[nindex] = prob;
 			activity += prob;
-			if(blist != nullptr) blist->add_to_boundary(spin, nspin, index, neighbor_spins);
+			if(blist != nullptr) blist->add_to_boundary(spin, nspin, index, neighbor_spins, spin);
 			return prob;
 		}
 		else
@@ -100,7 +100,7 @@ public:
 			{
 				neighbor_spins[i] = NO_NEIGHBOR;
 				activity -= neighbor_probs[i];
-				if (blist != nullptr) blist->remove_from_boundary(spin, nspin, index, neighbor_spins);
+				if (blist != nullptr) blist->remove_from_boundary(spin, nspin, index, neighbor_spins, spin);
 				return -neighbor_probs[i];
 			}
 		}
@@ -116,7 +116,7 @@ public:
 			if (neighbor_spins[i] != NO_NEIGHBOR)
 			{
 				delta -= neighbor_probs[i];
-				if (blist != nullptr) blist->remove_from_boundary(spin, neighbor_spins[i], index, neighbor_spins);
+				if (blist != nullptr) blist->remove_from_boundary(spin, neighbor_spins[i], index, neighbor_spins, spin);
 			}
 			neighbor_spins[i] = NO_NEIGHBOR;
 		}

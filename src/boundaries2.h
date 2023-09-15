@@ -10,15 +10,19 @@
 #pragma pack(push, 1)
 struct boundary_t
 {
-	spin_t a_spin, b_spin; // storing these is actually not necessary, but is used for logging
+	spin_t a_spin, b_spin;
 
 	bool marked_for_deletion = false;
 
 	bool transformed = false;
 	std::unordered_set<size_t> boundary_voxel_indices;
 
+	// Sweeping mechanism.
 	size_t previous_surface_area = 0;
 	int potential_energy = 0;
+
+	// Velocity analysis.
+	int a_flips = 0, b_flips = 0;
 
 	// Stores the adjacent boundaries and the number of voxels that they share.
 	std::unordered_map<boundary_t *, long> junctions;
@@ -133,10 +137,17 @@ struct boundary_tracker_t
 	}
 
 	// Add a voxel to a boundary and update that boundary's junctions.
-	void add_to_boundary(spin_t a, spin_t b, size_t index, spin_t *voxel_neighbor_spins = nullptr)
+	void add_to_boundary(spin_t a, spin_t b, size_t index, spin_t *voxel_neighbor_spins = nullptr, spin_t new_id=0)
 	{
 		boundary_t *boundary = find_or_create_boundary(a, b);
 		boundary->boundary_voxel_indices.insert(index);
+
+		if (new_id != 0) // only for velocity analysis
+		{
+			if (new_id == boundary->a_spin) ++boundary->a_flips;
+			else if (new_id == boundary->b_spin) ++boundary->b_flips;
+		}
+
 		if (voxel_neighbor_spins != nullptr)
 		{
 			for (char i = 0; i < NEIGH_COUNT; ++i)
@@ -149,10 +160,16 @@ struct boundary_tracker_t
 		}
 	}
 	// Remove a voxel from a boundary and update that boundary's junctions.
-	void remove_from_boundary(spin_t a, spin_t b, size_t index, spin_t *voxel_neighbor_spins = nullptr)
+	void remove_from_boundary(spin_t a, spin_t b, size_t index, spin_t *voxel_neighbor_spins = nullptr, spin_t new_id = 0)
 	{
 		boundary_t *boundary = find_or_create_boundary(a, b);
 		boundary->boundary_voxel_indices.erase(index);
+
+		if (new_id != 0) // only for velocity analysis
+		{
+			if (new_id == boundary->a_spin) --boundary->a_flips;
+			else if (new_id == boundary->b_spin) --boundary->b_flips;
+		}
 
 		if (boundary->area() == 0)
 		{
