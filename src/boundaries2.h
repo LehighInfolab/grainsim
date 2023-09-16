@@ -165,11 +165,11 @@ struct boundary_tracker_t
 		boundary_t *boundary = find_or_create_boundary(a, b);
 		boundary->boundary_voxel_indices.erase(index);
 
-		if (new_id != 0) // only for velocity analysis
+		/*if (new_id != 0) // only for velocity analysis
 		{
 			if (new_id == boundary->a_spin) --boundary->a_flips;
 			else if (new_id == boundary->b_spin) --boundary->b_flips;
-		}
+		}*/
 
 		if (boundary->area() == 0)
 		{
