@@ -223,7 +223,7 @@ public:
 		{
 			for (auto lg_iter = sm_iter->second.begin(); lg_iter != sm_iter->second.end(); ++lg_iter)
 			{
-				std::pair<size_t, size_t> delta = lg_iter->second;
+				std::pair<int, int> delta = lg_iter->second;
 				
 				afile << sm_iter->first << ' ' << lg_iter->first << ' ' << (delta.first - delta.second) << '\n';
 				afile << lg_iter->first << ' ' << sm_iter->first << ' ' << (delta.second - delta.first) << '\n';
