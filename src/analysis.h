@@ -219,21 +219,18 @@ public:
 
 		// Velocities
 		afile << "VELOCITIES\n";
-		for (auto sm_iter = curr_cube->boundary_tracker.boundary_map.begin(); sm_iter != curr_cube->boundary_tracker.boundary_map.end(); ++sm_iter)
+		for (auto sm_iter = curr_cube->boundary_tracker.velocity_tracker.begin(); sm_iter != curr_cube->boundary_tracker.velocity_tracker.end(); ++sm_iter)
 		{
 			for (auto lg_iter = sm_iter->second.begin(); lg_iter != sm_iter->second.end(); ++lg_iter)
 			{
-				boundary_t *boundary = lg_iter->second;
-
-				if (boundary->area() == 0) continue;
+				std::pair<size_t, size_t> delta = lg_iter->second;
 				
-				afile << boundary->a_spin << ' ' << boundary->b_spin << ' ' << (boundary->a_flips - boundary->b_flips) << '\n';
-				afile << boundary->b_spin << ' ' << boundary->a_spin << ' ' << (boundary->b_flips - boundary->a_flips) << '\n';
-
-				boundary->b_flips = 0;
-				boundary->b_flips = 0;
+				afile << sm_iter->first << ' ' << lg_iter->first << ' ' << (delta.first - delta.second) << '\n';
+				afile << lg_iter->first << ' ' << sm_iter->first << ' ' << (delta.second - delta.first) << '\n';
 			}
 		}
+
+		curr_cube->boundary_tracker.reset_flip_tracker();
 
 		afile.close();
 	}

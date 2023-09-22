@@ -12,8 +12,6 @@ struct boundary_t
 {
 	spin_t a_spin, b_spin;
 
-	bool marked_for_deletion = false;
-
 	bool transformed = false;
 	std::unordered_set<size_t> boundary_voxel_indices;
 
@@ -21,20 +19,15 @@ struct boundary_t
 	size_t previous_surface_area = 0;
 	int potential_energy = 0;
 
-	// Velocity analysis.
-	int a_flips = 0, b_flips = 0;
-
 	// Stores the adjacent boundaries and the number of voxels that they share.
 	std::unordered_map<boundary_t *, long> junctions;
-
-	void delta_junction(boundary_t *b, char dArea)
+	void incr_junction(boundary_t *b)
 	{
-		junctions[b] += dArea;
+		junctions[b] += 1;
 	}
-	void delete_junction(boundary_t *b)
+	void decr_junction(boundary_t *b)
 	{
-		if(junctions.find(b) != junctions.end())
-			junctions.erase(b);
+		junctions[b] -= 1;
 	}
 
 	size_t area()
@@ -66,10 +59,6 @@ struct boundary_tracker_t
 			output->b_spin = b;
 			boundary_map[a < b ? a : b][a < b ? b : a] = output;
 			++total_boundary_count;
-		}
-		else if (output->marked_for_deletion)
-		{
-			unmark_for_deletion(output);
 		}
 		return output;
 	}
@@ -119,17 +108,6 @@ struct boundary_tracker_t
 		delete boundary;
 	}
 
-	// Mark a boundary for deletion.
-	void mark_for_deletion(boundary_t *boundary)
-	{
-		boundary->marked_for_deletion = true;
-	}
-	// Remove the mark for deletion from a boundary.
-	void unmark_for_deletion(boundary_t *boundary)
-	{
-		boundary->marked_for_deletion = false;
-	}
-
 	// Check if the boundary between two grains is transformed.
 	bool is_transformed(spin_t a, spin_t b)
 	{
@@ -137,66 +115,35 @@ struct boundary_tracker_t
 	}
 
 	// Add a voxel to a boundary and update that boundary's junctions.
-	void add_to_boundary(spin_t a, spin_t b, size_t index, spin_t *voxel_neighbor_spins = nullptr, spin_t new_id=0)
+	void add_to_boundary(spin_t a, spin_t b, size_t index, spin_t *voxel_neighbor_spins)
 	{
 		boundary_t *boundary = find_or_create_boundary(a, b);
 		boundary->boundary_voxel_indices.insert(index);
 
-		if (new_id != 0) // only for velocity analysis
+		for (char i = 0; i < NEIGH_COUNT; ++i)
 		{
-			if (new_id == boundary->a_spin) ++boundary->a_flips;
-			else if (new_id == boundary->b_spin) ++boundary->b_flips;
-		}
-
-		if (voxel_neighbor_spins != nullptr)
-		{
-			for (char i = 0; i < NEIGH_COUNT; ++i)
+			if (voxel_neighbor_spins[i] != 0 && voxel_neighbor_spins[i] != a && voxel_neighbor_spins[i] != b)
 			{
-				if (voxel_neighbor_spins[i] != 0 && voxel_neighbor_spins[i] != a && voxel_neighbor_spins[i] != b)
-				{
-					boundary->delta_junction(find_or_create_boundary(a, voxel_neighbor_spins[i]), 1); // assume that spin "a" is the root voxel
-				}
+				boundary->incr_junction(find_or_create_boundary(a, voxel_neighbor_spins[i])); // assume that spin "a" is the root voxel
 			}
 		}
 	}
 	// Remove a voxel from a boundary and update that boundary's junctions.
-	void remove_from_boundary(spin_t a, spin_t b, size_t index, spin_t *voxel_neighbor_spins = nullptr, spin_t new_id = 0)
+	void remove_from_boundary(spin_t a, spin_t b, size_t index, spin_t *voxel_neighbor_spins)
 	{
 		boundary_t *boundary = find_or_create_boundary(a, b);
 		boundary->boundary_voxel_indices.erase(index);
 
-		/*if (new_id != 0) // only for velocity analysis
+		for (char i = 0; i < NEIGH_COUNT; ++i)
 		{
-			if (new_id == boundary->a_spin) --boundary->a_flips;
-			else if (new_id == boundary->b_spin) --boundary->b_flips;
-		}*/
-
-		if (boundary->area() == 0)
-		{
-			mark_for_deletion(boundary);
-		}
-		else if (voxel_neighbor_spins != nullptr)
-		{
-			for (char i = 0; i < NEIGH_COUNT; ++i)
+			if (voxel_neighbor_spins[i] != 0 && voxel_neighbor_spins[i] != a && voxel_neighbor_spins[i] != b)
 			{
-				if (voxel_neighbor_spins[i] != 0 && voxel_neighbor_spins[i] != a && voxel_neighbor_spins[i] != b)
-				{
-					boundary->delta_junction(find_or_create_boundary(a, voxel_neighbor_spins[i]), -1); // assume that spin "a" is the root grain
-				}
+				boundary->decr_junction(find_or_create_boundary(a, voxel_neighbor_spins[i])); // assume that spin "a" is the root grain
 			}
 		}
 	}
 
-	// Mark the boundary between two grains as transformed.
-	void mark_transformed(spin_t a, spin_t b)
-	{
-		boundary_t *boundary = find_or_create_boundary(a, b);
-		if (boundary->transformed) return;
-
-		boundary->transformed = true;
-		++transformed_boundary_count;
-	}
-	// Mark a boundary that you already have the reference for as transformed.
+	// Mark a boundary as transformed.
 	void mark_transformed(boundary_t *boundary)
 	{
 		if (boundary->transformed) return;
@@ -205,8 +152,8 @@ struct boundary_tracker_t
 		++transformed_boundary_count;
 	}
 
-	// Delete all marked boundaries from the boundary map and remove all invalid junctions.
-	void remove_marked_boundaries()
+	// Delete all invalid boundaries from the boundary map and remove all invalid junctions.
+	void remove_bad_boundaries()
 	{
 		std::list<boundary_t *> delete_list;
 
@@ -215,7 +162,7 @@ struct boundary_tracker_t
 			for (auto lg_iter = sm_iter->second.begin(); lg_iter != sm_iter->second.end(); ++lg_iter)
 			{
 				boundary_t *boundary = lg_iter->second;
-				if (boundary->marked_for_deletion || boundary->area() == 0)
+				if (boundary->area() == 0)
 				{
 					delete_list.push_back(boundary);
 					continue;
@@ -225,7 +172,7 @@ struct boundary_tracker_t
 				for (auto junc_iter = boundary->junctions.begin(); junc_iter != boundary->junctions.end(); ++junc_iter)
 				{
 					boundary_t *jbound = junc_iter->first;
-					if (jbound->marked_for_deletion || junc_iter->second <= 0)
+					if (jbound->area() == 0 || junc_iter->second <= 0)
 					{
 						remove_from_junctions_list.push_back(jbound);
 					}
@@ -241,6 +188,25 @@ struct boundary_tracker_t
 		for (auto delete_iter = delete_list.begin(); delete_iter != delete_list.end(); ++delete_iter)
 		{
 			delete_boundary((*delete_iter)->a_spin, (*delete_iter)->b_spin);
+		}
+	}
+
+	// Velocity tracking.
+	std::unordered_map<spin_t, std::unordered_map<spin_t, std::pair<int, int> > > velocity_tracker;
+	// dict( small_spin, dict( large_spin, { sm->lg, lg->sm } ) )
+	void reset_flip_tracker()
+	{
+		velocity_tracker.clear();
+	}
+	void track_flip(spin_t old_spin, spin_t new_spin)
+	{
+		if(old_spin < new_spin)
+		{
+			velocity_tracker[old_spin][new_spin].first += 1;
+		}
+		else if(new_spin < old_spin)
+		{
+			velocity_tracker[new_spin][old_spin].second += 1;
 		}
 	}
 };

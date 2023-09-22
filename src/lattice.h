@@ -161,6 +161,8 @@ private:
 			rebuild_neighbor_activity(x + NEIGHBOR_LOOKUP_X[n], y + NEIGHBOR_LOOKUP_Y[n], z + NEIGHBOR_LOOKUP_Z[n], new_spin);
 		}
 
+		boundary_tracker.track_flip(old_spin, new_spin);
+
 		++total_flips;
 		if (boundary_tracker.is_transformed(old_spin, new_spin)) ++transformed_flips;
 	}
@@ -400,7 +402,7 @@ public:
 		std::set<size_t> flip_indices;
 		std::set<size_t> propagate_indices;
 
-		boundary_tracker.remove_marked_boundaries();
+		boundary_tracker.remove_bad_boundaries();
 
 		if (count > boundary_tracker.total_boundary_count - boundary_tracker.transformed_boundary_count)
 		{

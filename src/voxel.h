@@ -7,9 +7,9 @@
 #pragma pack(push, 1)
 struct voxel_t
 {
-private:
 	// A const that signifies that no neighbor is present within that slot.
-	const spin_t NO_NEIGHBOR = 0;
+	static const spin_t NO_NEIGHBOR = 0;
+private:
 	// A list of the neighboring grains that this voxel is touching (note that this list is UNIQUE, so only one entry for a grain can exist at once, and the voxel's current grain is not present).
 	spin_t neighbor_spins[NEIGH_COUNT];
 	// A list of the probabilities that this voxel has for flipping to each neighboring grain.
@@ -67,7 +67,7 @@ public:
 			neighbor_spins[nindex] = nspin;
 			neighbor_probs[nindex] = prob;
 			activity += prob;
-			if(blist != nullptr) blist->add_to_boundary(spin, nspin, index, neighbor_spins, spin);
+			blist->add_to_boundary(spin, nspin, index, neighbor_spins);
 			return prob;
 		}
 		else
@@ -100,7 +100,7 @@ public:
 			{
 				neighbor_spins[i] = NO_NEIGHBOR;
 				activity -= neighbor_probs[i];
-				if (blist != nullptr) blist->remove_from_boundary(spin, nspin, index, neighbor_spins, spin);
+				blist->remove_from_boundary(spin, nspin, index, neighbor_spins);
 				return -neighbor_probs[i];
 			}
 		}
@@ -116,7 +116,7 @@ public:
 			if (neighbor_spins[i] != NO_NEIGHBOR)
 			{
 				delta -= neighbor_probs[i];
-				if (blist != nullptr) blist->remove_from_boundary(spin, neighbor_spins[i], index, neighbor_spins, spin);
+				blist->remove_from_boundary(spin, neighbor_spins[i], index, neighbor_spins);
 			}
 			neighbor_spins[i] = NO_NEIGHBOR;
 		}
