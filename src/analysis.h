@@ -230,6 +230,25 @@ public:
 			}
 		}
 
+		afile << "ADJACENT_BOUNDARIES\n";
+		for (auto sm_iter = curr_cube->boundary_tracker.boundary_map.begin(); sm_iter != curr_cube->boundary_tracker.boundary_map.end(); ++sm_iter)
+		{
+			for (auto lg_iter = sm_iter->second.begin(); lg_iter != sm_iter->second.end(); ++lg_iter)
+			{
+				boundary_t *boundary = lg_iter->second;
+
+				if (boundary->area() == 0) continue;
+
+				afile << boundary->a_spin << '/' << boundary->b_spin;
+				for (auto junc_iter = boundary->junctions.begin(); junc_iter != boundary->junctions.end(); ++junc_iter)
+				{
+					afile << ' ' << junc_iter->first->a_spin << '/' << junc_iter->first->b_spin;
+				}
+
+				afile << '\n';
+			}
+		}
+
 		curr_cube->boundary_tracker.reset_flip_tracker();
 
 		afile.close();
