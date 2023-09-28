@@ -165,7 +165,6 @@ struct boundary_tracker_t
 				if (boundary->area() == 0)
 				{
 					delete_list.push_back(boundary);
-					continue;
 				}
 
 				std::list<boundary_t *> remove_from_junctions_list;
