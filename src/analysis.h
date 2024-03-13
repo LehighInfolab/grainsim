@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
+#include <queue>
 
 #include "types.h"
 #include "lattice.h"
@@ -154,6 +155,127 @@ private:
 
 	}
 
+	activ_t get_patch_curvature(std::vector<size_t> voxels, spin_t a, spin_t b)
+	{
+		sparse_info_matrix.clear();
+
+		size_t index;
+		coord_t x, y, z;
+		for (auto viter = voxels.begin(); viter != voxels.end(); ++viter)
+		{
+			index = *viter;
+			curr_cube->from_index(index, &x, &y, &z);
+
+			spin_t
+				curr_id = curr_cube->voxel_at(x, y, z)->spin,
+				fwd_id = curr_cube->voxel_at(x, y, z + 1)->spin,
+				right_id = curr_cube->voxel_at(x + 1, y, z)->spin,
+				up_id = curr_cube->voxel_at(x, y + 1, z)->spin;
+
+			if (curr_id != right_id)
+			{
+				incr_sparse_sa(curr_id, right_id);
+			}
+			if (curr_id != fwd_id)
+			{
+				incr_sparse_sa(curr_id, fwd_id);
+			}
+			if (curr_id != up_id)
+			{
+				incr_sparse_sa(curr_id, up_id);
+			}
+
+			// back bottom
+			check_edge(
+				x, y, z,
+				0, 0, -1, 
+				0, 0, 0,
+				0, -1, 0,
+				0, -1, -1);
+			// back left
+			check_edge(
+				x, y, z,
+				-1, 0, 0,
+				0, 0, 0, 
+				0, 0, -1, 
+				-1, 0, -1);
+			// top left
+			check_edge(
+				x, y, z,
+				-1, 1, 0, 
+				0, 1, 0,
+				0, 0, 0,
+				-1, 0, 0);
+		}
+
+		//std::cout << "patch: " << get_curvature(a, b) << std::endl;
+
+		return get_curvature(a, b);
+	}
+
+	// Get the variance in curvature over all "patches" of voxels on a boundary.
+	activ_t capture_curvature_variance(spin_t a, spin_t b)
+	{
+		const size_t MAX_PATCH_SIZE = 20;
+		boundary_t *boundary = curr_cube->boundary_tracker.find_or_create_boundary(a, b);
+		std::vector<size_t> patch_voxels;
+		std::vector<activ_t> patch_curvatures;
+		std::unordered_set<size_t> skip_voxels;
+
+		// Iterate over all voxels in the boundary.
+		for (auto viter = boundary->boundary_voxel_indices.begin(); viter != boundary->boundary_voxel_indices.end(); ++viter)
+		{
+			if (skip_voxels.find(*viter) != skip_voxels.end()) continue;
+
+			uint8_t patch_size = 0;
+			coord_t x, y, z;
+			size_t index;
+			voxel_t *neighbor;
+			spin_t voxel_spin = (curr_cube->voxels[*viter].spin == a) ? a : b;
+			spin_t neighbor_spin = (curr_cube->voxels[*viter].spin == a) ? b : a;
+			std::queue<size_t> neighbor_queue;
+
+			neighbor_queue.push(*viter);
+
+			while (!neighbor_queue.empty() && patch_size < MAX_PATCH_SIZE)
+			{
+				index = neighbor_queue.front();
+				neighbor_queue.pop();
+				patch_voxels.push_back(index);
+
+				curr_cube->from_index(index, &x, &y, &z);
+				for (uint8_t i = 0; i < NEIGH_COUNT; ++i)
+				{
+					neighbor = curr_cube->neighbor_at(x, y, z, i);
+					if (neighbor->spin == voxel_spin && neighbor->has_neighbor(neighbor_spin))
+					{
+						neighbor_queue.push(neighbor->index);
+						++patch_size;
+					}
+					if (index == *viter)
+					{
+						skip_voxels.insert(neighbor->index);
+					}
+				}
+			}
+
+			patch_curvatures.push_back(get_patch_curvature(patch_voxels, a, b));
+			patch_voxels.clear();
+		}
+
+		double sum = std::accumulate(patch_curvatures.begin(), patch_curvatures.end(), 0.0);
+		double mean = sum / patch_curvatures.size();
+		std::vector<double> diff(patch_curvatures.size());
+		std::transform(patch_curvatures.begin(), patch_curvatures.end(), diff.begin(), std::bind2nd(std::minus<double>(), mean));
+		double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+		double variance = sq_sum / patch_curvatures.size();
+		double stdev = std::sqrt(variance);
+		//if (variance >= 1.5)
+		//	std::cout << "v=" << variance << ", std=" << stdev << std::endl;
+
+		return stdev;
+	}
+
 public:
 
 	void load_lattice(lattice_t *cube)
@@ -246,6 +368,19 @@ public:
 				}
 
 				afile << '\n';
+			}
+		}
+
+		afile << "CURVATURE_VARIANCE\n";
+		for (auto sm_iter = curr_cube->boundary_tracker.boundary_map.begin(); sm_iter != curr_cube->boundary_tracker.boundary_map.end(); ++sm_iter)
+		{
+			for (auto lg_iter = sm_iter->second.begin(); lg_iter != sm_iter->second.end(); ++lg_iter)
+			{
+				boundary_t *boundary = lg_iter->second;
+
+				if (boundary->area() < 20) continue;
+
+				afile << boundary->a_spin << '/' << boundary->b_spin << ' ' << capture_curvature_variance(boundary->a_spin, boundary->b_spin) << '\n';
 			}
 		}
 

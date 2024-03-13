@@ -19,7 +19,7 @@ DEFAULT_MOBILITY = 0.01
 # The mobility for transformed boundaries.
 TRANSITIONED_MOBILITY = 0.04
 # How often to transition boundaries (in timesteps).
-TRANSITION_INTERVAL = 500000
+TRANSITION_INTERVAL = 50000
 # How many boundaries to transition at a time.
 TRANSITION_COUNT = 50
 # What percent of transitions to propagate vs. random flip.

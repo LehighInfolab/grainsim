@@ -173,24 +173,6 @@ private:
 		activ_tree->get_voxel_from_sum_activity(outx, outy, outz, desired_activ, voxels, side_length);
 	}
 
-	void from_index(size_t index, coord_t *outx, coord_t *outy, coord_t *outz)
-	{
-		size_t temp;
-
-		temp = index % side_length;
-		*outx = temp;
-		index -= temp;
-		index /= side_length;
-
-		temp = index % side_length;
-		*outy = temp;
-		index -= temp;
-		index /= side_length;
-
-		temp = index % side_length;
-		*outz = temp;
-	}
-
 	std::mt19937 rng_gen;
 	std::uniform_real_distribution<> rng_dis;
 
@@ -305,6 +287,24 @@ public:
 	voxel_t *neighbor_at(coord_t x, coord_t y, coord_t z, char n)
 	{
 		return voxel_at(x + NEIGHBOR_LOOKUP_X[n], y + NEIGHBOR_LOOKUP_Y[n], z + NEIGHBOR_LOOKUP_Z[n]);
+	}
+
+	void from_index(size_t index, coord_t *outx, coord_t *outy, coord_t *outz)
+	{
+		size_t temp;
+
+		temp = index % side_length;
+		*outx = temp;
+		index -= temp;
+		index /= side_length;
+
+		temp = index % side_length;
+		*outy = temp;
+		index -= temp;
+		index /= side_length;
+
+		temp = index % side_length;
+		*outz = temp;
 	}
 
 	// Initialize the lattice (used to build initial activity values at the start of the simulation).
