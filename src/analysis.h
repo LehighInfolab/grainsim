@@ -105,7 +105,7 @@ private:
 		sparse_info_matrix.clear();
 		vol_map.clear();
 
-		for(coord_t z = 0; z < curr_cube->side_length; ++z)
+		for (coord_t z = 0; z < curr_cube->side_length; ++z)
 			for (coord_t y = 0; y < curr_cube->side_length; ++y)
 				for (coord_t x = 0; x < curr_cube->side_length; ++x)
 				{
@@ -131,7 +131,7 @@ private:
 					// back bottom
 					check_edge(
 						x, y, z,
-						0, 0, -1, 
+						0, 0, -1,
 						0, 0, 0,
 						0, -1, 0,
 						0, -1, -1);
@@ -139,13 +139,13 @@ private:
 					check_edge(
 						x, y, z,
 						-1, 0, 0,
-						0, 0, 0, 
-						0, 0, -1, 
+						0, 0, 0,
+						0, 0, -1,
 						-1, 0, -1);
 					// top left
 					check_edge(
 						x, y, z,
-						-1, 1, 0, 
+						-1, 1, 0,
 						0, 1, 0,
 						0, 0, 0,
 						-1, 0, 0);
@@ -188,7 +188,7 @@ private:
 			// back bottom
 			check_edge(
 				x, y, z,
-				0, 0, -1, 
+				0, 0, -1,
 				0, 0, 0,
 				0, -1, 0,
 				0, -1, -1);
@@ -196,13 +196,13 @@ private:
 			check_edge(
 				x, y, z,
 				-1, 0, 0,
-				0, 0, 0, 
-				0, 0, -1, 
+				0, 0, 0,
+				0, 0, -1,
 				-1, 0, -1);
 			// top left
 			check_edge(
 				x, y, z,
-				-1, 1, 0, 
+				-1, 1, 0,
 				0, 1, 0,
 				0, 0, 0,
 				-1, 0, 0);
@@ -216,8 +216,8 @@ private:
 	// Get the variance in curvature over all "patches" of voxels on a boundary.
 	activ_t capture_curvature_variance(spin_t a, spin_t b)
 	{
-		const size_t MAX_PATCH_SIZE = 20;
 		boundary_t *boundary = curr_cube->boundary_tracker.find_or_create_boundary(a, b);
+		size_t MAX_PATCH_SIZE = std::min(boundary->area() / 10, (size_t)20);
 		std::vector<size_t> patch_voxels;
 		std::vector<activ_t> patch_curvatures;
 		std::unordered_set<size_t> skip_voxels;
@@ -259,19 +259,27 @@ private:
 				}
 			}
 
-			patch_curvatures.push_back(get_patch_curvature(patch_voxels, a, b));
+			activ_t patch_curve = get_patch_curvature(patch_voxels, a, b);
+			patch_curvatures.push_back(patch_curve);
 			patch_voxels.clear();
+
+			if ((a == 96 || a == 2471) && (b == 96 || b == 2461))
+			{
+				std::cout << "patch = " << patch_curve << std::endl;
+			}
 		}
 
-		double sum = std::accumulate(patch_curvatures.begin(), patch_curvatures.end(), 0.0);
+		double sum = std::accumulate(patch_curvatures.begin(),
+			patch_curvatures.end(), 0.0);
 		double mean = sum / patch_curvatures.size();
-		std::vector<double> diff(patch_curvatures.size());
-		std::transform(patch_curvatures.begin(), patch_curvatures.end(), diff.begin(), std::bind2nd(std::minus<double>(), mean));
-		double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-		double variance = sq_sum / patch_curvatures.size();
-		double stdev = std::sqrt(variance);
+
+		double sq_sum = std::inner_product(
+			patch_curvatures.begin(), patch_curvatures.end(),
+			patch_curvatures.begin(), 0.0);
+		double stdev =
+			std::sqrt(sq_sum / patch_curvatures.size() - mean * mean);
 		//if (variance >= 1.5)
-		//	std::cout << "v=" << variance << ", std=" << stdev << std::endl;
+//	std::cout << "v=" << variance << ", std=" << stdev << std::endl;
 
 		return stdev;
 	}
@@ -346,7 +354,7 @@ public:
 			for (auto lg_iter = sm_iter->second.begin(); lg_iter != sm_iter->second.end(); ++lg_iter)
 			{
 				std::pair<int, int> delta = lg_iter->second;
-				
+
 				afile << sm_iter->first << ' ' << lg_iter->first << ' ' << (delta.first - delta.second) << '\n';
 				afile << lg_iter->first << ' ' << sm_iter->first << ' ' << (delta.second - delta.first) << '\n';
 			}
@@ -380,7 +388,7 @@ public:
 
 				if (boundary->area() < 20) continue;
 
-				afile << boundary->a_spin << '/' << boundary->b_spin << ' ' << capture_curvature_variance(boundary->a_spin, boundary->b_spin) << '\n';
+				afile << boundary->a_spin << ' ' << boundary->b_spin << ' ' << capture_curvature_variance(boundary->a_spin, boundary->b_spin) << '\n';
 			}
 		}
 

@@ -56,8 +56,10 @@ int main(int argc, char *argv[])
 	debug_timer_t timer;
 	timer.start();
 
-	double timestep = 0, curr_step, log_duration = 0, transition_duration = 0, next_checkpoint = cfg.checkpoint_interval;
-	int vtkcount = 0;
+        double timestep = 0, curr_step, log_duration = 0,
+               transition_duration = 0,
+               next_checkpoint = 0; //= cfg.checkpoint_interval;
+        int vtkcount = 0;
 
 	if (cfg.log_transitions) cube->begin_logging_transitions(cfg.output_folder);
 
